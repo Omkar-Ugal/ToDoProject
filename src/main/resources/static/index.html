@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <style>
+        .spacing {
+            margin-left: 10px; /* Space between task and button */
+        }
+    </style>
+</head>
+<body>
+<h1>Todo List</h1>
+<input type="text" id="taskInput" placeholder="Enter a task">
+<button onclick="addTodo()">Add Todo</button>
+<ul id="todoList"></ul>
+
+<script>
+    async function fetchTodos() {
+        try {
+            const response = await fetch('/api/todos');
+            if (!response.ok) throw new Error('Network response was not ok');
+
+            const todos = await response.json();
+            const todoList = document.getElementById('todoList');
+            todoList.innerHTML = '';
+
+            todos.forEach(todo => {
+                const li = document.createElement('li');
+                li.textContent = `${todo.task} - ${todo.completed ? 'Done' : 'Pending'}`;
+                li.appendChild(createCompleteButton(todo.id, todo.completed));
+                li.appendChild(createDeleteButton(todo.id));
+                todoList.appendChild(li);
+            });
+        } catch (error) {
+            console.error('Error fetching todos:', error);
+        }
+    }
+
+    function createCompleteButton(id, completed) {
+        const button = document.createElement('button');
+        button.textContent = completed ? 'Undo' : 'Complete';
+        button.classList.add('spacing'); // Add the spacing class
+        button.onclick = async () => {
+            try {
+                await fetch(`/api/todos/${id}/complete`, { method: 'PUT' });
+                fetchTodos(); // Refresh the list after toggling
+            } catch (error) {
+                console.error('Error toggling todo completion:', error);
+            }
+        };
+        return button;
+    }
+
+    function createDeleteButton(id) {
+        const button = document.createElement('button');
+        button.textContent = 'Delete';
+        button.onclick = async () => {
+            try {
+                await fetch(`/api/todos/${id}`, { method: 'DELETE' });
+                fetchTodos(); // Refresh the list after deletion
+            } catch (error) {
+                console.error('Error deleting todo:', error);
+            }
+        };
+        return button;
+    }
+
+    async function addTodo() {
+        const taskInput = document.getElementById('taskInput');
+        const task = taskInput.value.trim();
+        if (task) {
+            await fetch('/api/todos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ task, completed: false })
+            });
+            taskInput.value = '';
+            fetchTodos(); // Refresh the list after adding
+        } else {
+            alert('Please enter a task.');
+        }
+    }
+
+    // Fetch todos on initial load
+    fetchTodos();
+</script>
+<style>
+    .spacing {
+        margin-left: 10px; /* Adjust the value as needed */
+    }
+</style>
+
+</body>
+</html>
